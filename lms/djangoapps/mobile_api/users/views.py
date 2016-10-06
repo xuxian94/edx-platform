@@ -215,6 +215,15 @@ class UserCourseEnrollmentsList(generics.ListAPIView):
 
         GET /api/mobile/v0.5/users/{username}/course_enrollments/
 
+        **Parameters:**
+
+            org (optional):
+                Will only return courses under with the specified org.
+
+            mobile (optional):
+                The option to return only mobile or only non-mobile courses.
+                True by default.
+
     **Response Values**
 
         If the request for information about the user is successful, the
@@ -282,11 +291,20 @@ class UserCourseEnrollmentsList(generics.ListAPIView):
             is_active=True
         ).order_by('created').reverse()
         org = self.request.query_params.get('org', None)
-        return [
-            enrollment for enrollment in enrollments
-            if enrollment.course_overview and self.is_org(org, enrollment.course_overview.org) and
-            is_mobile_available_for_user(self.request.user, enrollment.course_overview)
-        ]
+        mobile_only = self.request.query_params.get('mobile', "true")
+
+        if mobile_only == "true":
+            return [
+                enrollment for enrollment in enrollments
+                if enrollment.course_overview and self.is_org(org, enrollment.course_overview.org) and
+                is_mobile_available_for_user(self.request.user, enrollment.course_overview)
+            ]
+        else:
+            return [
+                enrollment for enrollment in enrollments
+                if enrollment.course_overview and self.is_org(org, enrollment.course_overview.org) and
+                not is_mobile_available_for_user(self.request.user, enrollment.course_overview)
+            ]
 
 
 @api_view(["GET"])
