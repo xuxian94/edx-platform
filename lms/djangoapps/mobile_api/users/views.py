@@ -221,7 +221,9 @@ class UserCourseEnrollmentsList(generics.ListAPIView):
                 Will only return courses under with the specified org.
 
             mobile (optional):
-                The option to all or mobile-only course. True by default.
+                The option to all or mobile-only course. If False, the
+                non-mobile enrollments will be at the end of the end of the
+                enrollments returned.
 
     **Response Values**
 
@@ -293,16 +295,21 @@ class UserCourseEnrollmentsList(generics.ListAPIView):
         mobile_only = self.request.query_params.get('mobile', "true")
 
         if mobile_only == "true":
-            return [
+             return [
                 enrollment for enrollment in enrollments
                 if enrollment.course_overview and self.is_org(org, enrollment.course_overview.org) and
                 is_mobile_available_for_user(self.request.user, enrollment.course_overview)
             ]
         else:
-            return [
-                enrollment for enrollment in enrollments
-                if enrollment.course_overview and self.is_org(org, enrollment.course_overview.org)
-            ]
+            mobile = []
+            non_mobile = []
+            for enrollment in enrollments:
+                if enrollment.course_overview and self.is_org(org, enrollment.course_overview.org) and \
+                    enrollment.course_overview.mobile_available:
+                    mobile.append(enrollment)
+                else:
+                    non_mobile.append(enrollment)
+            return mobile + non_mobile
 
 
 @api_view(["GET"])
