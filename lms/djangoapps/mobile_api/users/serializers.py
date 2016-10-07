@@ -74,6 +74,7 @@ class CourseOverviewField(serializers.RelatedField):
                 kwargs={'course_id': course_id},
                 request=request,
             ),
+            'mobile_available': course_overview.mobile_available,
         }
 
 

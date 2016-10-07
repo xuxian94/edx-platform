@@ -221,8 +221,7 @@ class UserCourseEnrollmentsList(generics.ListAPIView):
                 Will only return courses under with the specified org.
 
             mobile (optional):
-                The option to return only mobile or only non-mobile courses.
-                True by default.
+                The option to all or mobile-only course. True by default.
 
     **Response Values**
 
@@ -235,9 +234,8 @@ class UserCourseEnrollmentsList(generics.ListAPIView):
           course.
         * course: A collection of the following data about the course.
 
-        * courseware_access: A JSON representation with access information for the course,
-          including any access errors.
-
+          * courseware_access: A JSON representation with access information for the course,
+            including any access errors.
           * course_about: The URL to the course about page.
           * course_handouts: The URI to get data for course handouts.
           * course_image: The path to the course image.
@@ -259,6 +257,7 @@ class UserCourseEnrollmentsList(generics.ListAPIView):
             the course.
           * video_outline: The URI to get the list of all videos that the user
             can access in the course.
+          * mobile_available: Whether the course is available on mobile
 
         * created: The date the course was created.
         * is_active: Whether the course is currently active. Possible values
@@ -302,8 +301,7 @@ class UserCourseEnrollmentsList(generics.ListAPIView):
         else:
             return [
                 enrollment for enrollment in enrollments
-                if enrollment.course_overview and self.is_org(org, enrollment.course_overview.org) and
-                not is_mobile_available_for_user(self.request.user, enrollment.course_overview)
+                if enrollment.course_overview and self.is_org(org, enrollment.course_overview.org)
             ]
 
 
