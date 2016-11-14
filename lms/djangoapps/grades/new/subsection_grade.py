@@ -1,8 +1,10 @@
 """
 SubsectionGrade Class
 """
+from celery import task
 from collections import OrderedDict
 from contextlib import contextmanager
+from django.conf import settings
 from django.db import transaction
 from django.db.utils import DatabaseError
 from lazy import lazy
@@ -11,6 +13,7 @@ from courseware.model_data import ScoresClient
 from lms.djangoapps.grades.scores import get_score, possibly_scored
 from lms.djangoapps.grades.models import BlockRecord, PersistentSubsectionGrade
 from lms.djangoapps.grades.config.models import PersistentGradesEnabledFlag
+import json
 from openedx.core.lib.grade_utils import is_score_higher
 from student.models import anonymous_id_for_user
 from submissions import api as submissions_api
@@ -36,11 +39,22 @@ def persistence_safe_fallback():
         log.warning("Persistent Grades: database_error.safe_fallback.\n{}".format(format_exc()))
 
 
+@task(default_retry_delay=10, routing_key=settings.RECALCULATE_GRADES_ROUTING_KEY)
+def bulk_create_unsaved_async(unsaved_grades, course_key):
+    """
+    Allows bulk_create_unsaved to be retried ansynchronously.
+
+    unsaved_grades is a json-serialized dict of subsections to create.
+    """
+    data = json.loads(unsaved_grades)
+    return PersistentSubsectionGrade.bulk_create_grades([subsection_grade for subsection_grade in data], course_key)
+
+
 class SubsectionGrade(object):
     """
     Class for Subsection Grades.
     """
-    def __init__(self, subsection, course):
+    def __init__(self, subsection):
         self.location = subsection.location
         self.display_name = block_metadata_utils.display_name_with_default_escaped(subsection)
         self.url_name = block_metadata_utils.url_name_for_block(subsection)
@@ -223,7 +237,7 @@ class SubsectionGradeFactory(object):
 
         subsection_grade = self._get_bulk_cached_grade(subsection)
         if not subsection_grade:
-            subsection_grade = SubsectionGrade(subsection, self.course).init_from_structure(
+            subsection_grade = SubsectionGrade(subsection).init_from_structure(
                 self.student, self.course_structure, self._submissions_scores, self._csm_scores,
             )
             if PersistentGradesEnabledFlag.feature_enabled(self.course.id):
@@ -254,7 +268,7 @@ class SubsectionGradeFactory(object):
 
         self._log_event(log.warning, u"update, subsection: {}".format(subsection.location), subsection)
 
-        calculated_grade = SubsectionGrade(subsection, self.course).init_from_structure(
+        calculated_grade = SubsectionGrade(subsection).init_from_structure(
             self.student, self.course_structure, self._submissions_scores, self._csm_scores,
         )
 
@@ -264,7 +278,7 @@ class SubsectionGradeFactory(object):
             except PersistentSubsectionGrade.DoesNotExist:
                 pass
             else:
-                orig_subsection_grade = SubsectionGrade(subsection, self.course).init_from_model(
+                orig_subsection_grade = SubsectionGrade(subsection).init_from_model(
                     self.student, grade_model, self.course_structure, self._submissions_scores, self._csm_scores,
                 )
                 if not is_score_higher(
@@ -310,7 +324,7 @@ class SubsectionGradeFactory(object):
         saved_subsection_grades = self._get_bulk_cached_subsection_grades()
         subsection_grade = saved_subsection_grades.get(subsection.location)
         if subsection_grade:
-            return SubsectionGrade(subsection, self.course).init_from_model(
+            return SubsectionGrade(subsection).init_from_model(
                 self.student, subsection_grade, self.course_structure, self._submissions_scores, self._csm_scores,
             )
 
