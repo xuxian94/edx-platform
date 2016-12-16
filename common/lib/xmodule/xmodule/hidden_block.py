@@ -1,3 +1,7 @@
+"""
+HiddenBlock is a placeholder for when we don't have a registered block type
+for some given tag.
+"""
 from xblock.core import XBlock
 from xblock.fragment import Fragment
 
