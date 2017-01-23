@@ -2160,6 +2160,9 @@ INSTALLED_APPS = (
     # Customized celery tasks, including persisting failed tasks so they can
     # be retried
     'openedx.core.djangoapps.celery_utils',
+
+    # success factors
+    'success_factors',
 )
 
 # Migrations which are not in the standard module "migrations"
