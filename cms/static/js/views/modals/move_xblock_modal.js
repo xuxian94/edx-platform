@@ -17,8 +17,6 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
     'use strict';
 
     var MoveXblockModal = BaseModal.extend({
-        modalSRTitle: gettext('Choose a location to move your component to'),
-
         events: _.extend({}, BaseModal.prototype.events, {
             'click .action-move': 'moveXBlock'
         }),
@@ -40,6 +38,7 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
             this.listenTo(Backbone, 'move:breadcrumbRendered', this.focusModal);
             this.sourceXBlockInfo = this.options.sourceXBlockInfo;
             this.sourceParentXBlockInfo = this.options.sourceParentXBlockInfo;
+            this.targetParentXBlockInfo = null;
             this.XBlockURLRoot = this.options.XBlockURLRoot;
             this.XBlockAncestorInfoURL = StringUtils.interpolate(
                 '{urlRoot}/{usageId}?fields=ancestorInfo',
@@ -52,10 +51,9 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
                 $('.breadcrumb-container').removeClass('is-hidden');
                 self.renderViews(courseOutlineInfo, ancestorInfo);
             });
-            this.targetParentXBlockInfo = null;
             this.movedAlertView = null;
-            this.moveXBlockBreadcrumbView = null;
-            this.moveXBlockListView = null;
+            this.isValidMove = false;
+            this.listenTo(Backbone, 'move:enableMoveOperation', this.enableMoveOperation);
         },
 
         getTitle: function() {
@@ -71,7 +69,8 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
 
         show: function() {
             BaseModal.prototype.show.apply(this, [false]);
-            Feedback.prototype.inFocus.apply(this, [this.options.modalWindowClass]);
+            this.updateMoveState(false);
+            MoveXBlockUtils.hideMovedNotification(Feedback);
         },
 
         hide: function() {
@@ -82,7 +81,7 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
                 this.moveXBlockBreadcrumbView.remove();
             }
             BaseModal.prototype.hide.apply(this);
-            Feedback.prototype.outFocus.apply(this);
+            // Feedback.prototype.outFocus.apply(this);
         },
 
         focusModal: function() {
@@ -122,18 +121,40 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
             );
         },
 
+        updateMoveState: function(isValidMove) {
+            var $moveButton = this.$el.find('.action-move');
+            if (isValidMove) {
+                $moveButton.removeAttr('disabled');
+                $moveButton.removeClass('is-disabled');
+            } else {
+                $moveButton.attr('disabled', true);
+                $moveButton.addClass('is-disabled');
+            }
+            this.isValidMove = isValidMove || false;
+        },
+
+        enableMoveOperation: function(targetParentXBlockInfo) {
+            var isValidMove = false,
+                sourceParentType = this.sourceParentXBlockInfo.get('category'),
+                targetParentType = targetParentXBlockInfo.get('category');
+
+            if (targetParentType === sourceParentType && this.sourceParentXBlockInfo.id !== targetParentXBlockInfo.id) {
+                isValidMove = true;
+                this.targetParentXBlockInfo = targetParentXBlockInfo;
+            }
+            this.updateMoveState(isValidMove);
+        },
+
         moveXBlock: function() {
             var self = this;
-            XBlockViewUtils.moveXBlock(self.sourceXBlockInfo.id, self.moveXBlockListView.parent_info.parent.id)
+            if (self.isValidMove) {
+                XBlockViewUtils.moveXBlock(self.sourceXBlockInfo.id, self.targetParentXBlockInfo.id)
                 .done(function(response) {
                     if (response.move_source_locator) {
                         // hide modal
                         self.hide();
                         // hide xblock element
                         $("li.studio-xblock-wrapper[data-locator='" + self.sourceXBlockInfo.id + "']").hide();
-                        if (self.movedAlertView) {
-                            self.movedAlertView.hide();
-                        }
                         self.movedAlertView = MoveXBlockUtils.showMovedNotification(
                             StringUtils.interpolate(
                                 gettext('Success! "{displayName}" has been moved.'),
@@ -141,31 +162,17 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
                                     displayName: self.sourceXBlockInfo.get('display_name')
                                 }
                             ),
-                            StringUtils.interpolate(
-                                gettext('{link_start}Take me to the new location{link_end}'),
-                                {
-                                    link_start: HtmlUtils.HTML('<a href="/container/' + response.parent_locator + '">'),
-                                    link_end: HtmlUtils.HTML('</a>')
-                                }
-                            ),
-                            HtmlUtils.interpolateHtml(
-                                HtmlUtils.HTML(
-                                    '<a class="action-undo-move" href="#" data-source-display-name="{displayName}" ' +
-                                    'data-source-locator="{sourceLocator}" ' +
-                                    'data-source-parent-locator="{sourceParentLocator}" ' +
-                                    'data-target-index="{targetIndex}">{undoMove}</a>'
-                                ),
-                                {
-                                    displayName: self.sourceXBlockInfo.get('display_name'),
-                                    sourceLocator: self.sourceXBlockInfo.id,
-                                    sourceParentLocator: self.sourceParentXBlockInfo.id,
-                                    targetIndex: response.source_index,
-                                    undoMove: gettext('Undo move')
-                                }
-                            )
+                            {
+                                sourceDisplayName: self.sourceXBlockInfo.get('display_name'),
+                                sourceLocator: self.sourceXBlockInfo.id,
+                                sourceParentLocator: self.sourceParentXBlockInfo.id,
+                                targetParentLocator: response.parent_locator,
+                                targetIndex: response.source_index
+                            }
                         );
                     }
                 });
+            }
         }
     });
 
