@@ -14,9 +14,9 @@ from oauthlib.oauth1.rfc5849.signature import (
     construct_base_string,
     sign_hmac_sha1,
 )
-from social.backends.base import BaseAuth
-from social.exceptions import AuthFailed
-from social.utils import sanitize_redirect
+from social_core.backends.base import BaseAuth
+from social_core.exceptions import AuthFailed
+from social_core.utils import sanitize_redirect
 
 log = logging.getLogger(__name__)
 
