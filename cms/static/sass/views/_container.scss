@@ -350,39 +350,20 @@
 
     .breadcrumbs {
       .bc-container {
-        .breadcrumb-fa-icon {
-          width: ($baseline);
-          @include rtl {
-            text-align: left;
-            &.last {
-                text-align: right;
-            }
-          }
-        }
+        @include font-size(14);
 
-        .breadcrumb-fa-icon:not(.last) {
+        .breadcrumb-fa-icon {
+          @include padding(0, ($baseline/4), 0, ($baseline/4));
+
           @include rtl {
             @include transform(rotate(180deg));
           }
-        }
-        // setting parent font-size to 0 and then setting child font-size is needed to remove the
-        // visible space between inline elements(span.fa-angle-right and button.parent-nav-button)
-        // https://davidwalsh.name/remove-whitespace-inline-block
-        font-size: 0;
-        & > * {
-          @include font-size(14);
         }
 
         &.last {
           .parent-displayname {
             @include font-size(18);
           }
-        }
-      }
-
-      @for $i from 2 to 5 {
-        .bc-#{$i} {
-          @include padding-left($baseline * ($i - 1));
         }
       }
 

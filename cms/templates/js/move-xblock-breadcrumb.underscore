@@ -1,16 +1,13 @@
 <div class="breadcrumbs">
     <% _.each(breadcrumbs.slice(0, -1), function (breadcrumb, index, items) { %>
-        <div class="bc-container bc-<%- index %>">
-            <span class="fa fa-angle-right breadcrumb-fa-icon <%- index===0 ? "is-hidden" : "" %>" aria-hidden="true"></span>
+        <span class="bc-container bc-<%- index %>">
             <button class="parent-nav-button" data-parent-index="<%- index %>">
                 <%- breadcrumb %>
             </button>
-        </div>
+            <span class="fa fa-angle-right breadcrumb-fa-icon" aria-hidden="true"></span>
+        </span>
     <% }) %>
-    <div class="bc-container bc-<%- breadcrumbs.length - 1 %> last">
-        <% if (breadcrumbs.length > 1) {%>
-            <span class="fa fa-caret-down breadcrumb-fa-icon last" aria-hidden="true"></span>
-        <% } %>
+    <span class="bc-container bc-<%- breadcrumbs.length - 1 %> last">
         <span class="parent-displayname"><%- breadcrumbs[breadcrumbs.length - 1] %></span>
-    </div>
+    </span>
 </div>

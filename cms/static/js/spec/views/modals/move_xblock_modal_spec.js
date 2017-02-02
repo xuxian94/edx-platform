@@ -1,6 +1,7 @@
 define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers',
-        'common/js/spec_helpers/template_helpers', 'js/views/modals/move_xblock_modal', 'js/models/xblock_info'],
-    function($, _, AjaxHelpers, TemplateHelpers, MoveXBlockModal, XBlockInfo) {
+        'common/js/spec_helpers/template_helpers', 'common/js/spec_helpers/view_helpers',
+        'js/views/modals/move_xblock_modal', 'js/models/xblock_info'],
+    function($, _, AjaxHelpers, TemplateHelpers, ViewHelpers, MoveXBlockModal, XBlockInfo) {
         'use strict';
         describe('MoveXBlockModal', function() {
             var modal,
@@ -25,6 +26,7 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
             };
 
             beforeEach(function() {
+                setFixtures('<div id="page-notification"></div><div id="reader-feedback"></div>');
                 TemplateHelpers.installTemplates([
                     'basic-modal',
                     'modal-button',
@@ -58,6 +60,14 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
                 AjaxHelpers.expectRequest(requests, 'GET', ANCESTORS_URL);
                 AjaxHelpers.respondWithJson(requests, {});
                 expect(renderViewsSpy).toHaveBeenCalled();
+            });
+
+            it('shows error notification when fetch course outline request fails', function() {
+                var requests = AjaxHelpers.requests(this),
+                    notificationSpy = ViewHelpers.createNotificationSpy('Error');
+                showModal();
+                AjaxHelpers.respondWithError(requests);
+                ViewHelpers.verifyNotificationShowing(notificationSpy, "Studio's having trouble saving your work");
             });
         });
     });

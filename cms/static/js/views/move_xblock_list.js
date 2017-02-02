@@ -14,9 +14,9 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
     var XBlockListView = Backbone.View.extend({
         el: '.xblock-list-container',
 
-        // parent info of currently displayed childs
+        // parent info of currently displayed children
         parentInfo: {},
-        // child info of currently displayed child XBlocks
+        // currently displayed children XBlocks info
         childrenInfo: {},
         // list of visited parent XBlocks, needed for backward navigation
         visitedAncestors: null,
@@ -66,6 +66,11 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
             return this;
         },
 
+        /**
+         * Forward button press handler. This will render all the childs of an XBlock.
+         *
+         * @param {Object} event
+         */
         renderChildren: function(event) {
             this.renderXBlockInfo(
                 'forward',
@@ -73,10 +78,21 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
             );
         },
 
+        /**
+         * Breadcrumb button press event handler. Render all the childs of an XBlock.
+         *
+         * @param {any} newParentIndex  Index of a parent XBlock
+         */
         handleBreadcrumbButtonPress: function(newParentIndex) {
             this.renderXBlockInfo('backward', newParentIndex);
         },
 
+        /**
+         * Render XBlocks based on `forward` or `backward` navigation.
+         *
+         * @param {any} direction           `forward` or `backward`
+         * @param {any} newParentIndex      Index of a parent XBlock
+         */
         renderXBlockInfo: function(direction, newParentIndex) {
             if (direction === undefined) {
                 this.parentInfo.parent = this.model;
@@ -102,15 +118,22 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
             this.render();
         },
 
+        /**
+         * Set parent and childs XBlock categories.
+         */
         setDisplayedXBlocksCategories: function() {
             this.parentInfo.category = XBlockUtils.getXBlockType(
                 this.parentInfo.parent.get('category'),
-                // TODO! improve `this.visitedAncestors.length - 2` mysterious calculation
                 this.visitedAncestors[this.visitedAncestors.length - 2]
             );
             this.childrenInfo.category = this.categoryRelationMap[this.parentInfo.category];
         },
 
+        /**
+         * Get index of source XBlock.
+         *
+         * @returns {any} Integer or undefined
+         */
         getCurrentLocationIndex: function() {
             var category, ancestorXBlock, currentLocationIndex;
 
@@ -135,17 +158,32 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
             return currentLocationIndex;
         },
 
+        /**
+         * Get category text for currently displayed children.
+         *
+         * @returns {String}
+         */
         getCategoryText: function() {
             return this.categoriesText[this.childrenInfo.category];
         },
 
+        /**
+         * Get screen reader text for forward button.
+         *
+         * @returns {String}
+         */
         getForwardButtonSRText: function() {
             return StringUtils.interpolate(
-                gettext('Press button to see {XBlockCategory} childs'),
+                gettext('Press button to see {XBlockCategory} children'),
                 {XBlockCategory: this.childrenInfo.category}
             );
         },
 
+        /**
+         * Get text when a parent XBlock has no children.
+         *
+         * @returns {String}
+         */
         getNoChildText: function() {
             return StringUtils.interpolate(
                 gettext('This {parentCategory} has no {childCategory}'),
@@ -156,6 +194,11 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
             );
         },
 
+        /**
+         * Construct breadcurmb info.
+         *
+         * @returns {Object}
+         */
         breadcrumbInfo: function() {
             return {
                 breadcrumbs: _.map(this.visitedAncestors, function(ancestor) {

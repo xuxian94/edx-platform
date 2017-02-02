@@ -6,11 +6,11 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
         'use strict';
         describe('MoveXBlock', function() {
             var renderViews, createXBlockInfo, createCourseOutline, moveXBlockBreadcrumbView,
-                moveXBlockListView, parentToChildMap, categoryMap, createChildXBlockInfo,
+                moveXBlockListView, parentChildMap, categoryMap, createChildXBlockInfo,
                 verifyBreadcrumbViewInfo, verifyListViewInfo, getDisplayedInfo, clickForwardButton,
                 clickBreadcrumbButton, verifyXBlockInfo, nextCategory;
 
-            parentToChildMap = {
+            parentChildMap = {
                 course: 'section',
                 section: 'subsection',
                 subsection: 'unit',
@@ -39,60 +39,89 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
                 moveXBlockListView.remove();
             });
 
-            createChildXBlockInfo = function(category, options, xblockIndex) {
-                var cInfo =
-                    {
-                        category: categoryMap[category],
-                        display_name: category + '_display_name_' + xblockIndex,
-                        id: category + '_ID'
-                    };
-
-                return createXBlockInfo(parentToChildMap[category], options, cInfo);
+            /**
+             * Create child XBlock info.
+             *
+             * @param {String} category         XBlock category
+             * @param {Object} outlineOptions   options according to which outline was created
+             * @param {Object} xblockIndex      XBlock Index
+             * @returns
+             */
+            createChildXBlockInfo = function(category, outlineOptions, xblockIndex) {
+                var childInfo = {
+                    category: categoryMap[category],
+                    display_name: category + '_display_name_' + xblockIndex,
+                    id: category + '_ID'
+                };
+                return createXBlockInfo(parentChildMap[category], outlineOptions, childInfo);
             };
 
-            createXBlockInfo = function(category, options, outline) {
-                var cInfo =
-                    {
+            /**
+             * Create parent XBlock info.
+             *
+             * @param {String} category         XBlock category
+             * @param {Object} outlineOptions   options according to which outline was created
+             * @param {Object} outline          ouline info being constructed
+             * @returns {Object}
+             */
+            createXBlockInfo = function(category, outlineOptions, outline) {
+                var childInfo = {
                         category: categoryMap[category],
                         display_name: category,
                         children: []
                     },
                     xblocks;
 
-                xblocks = options[category];
+                xblocks = outlineOptions[category];
                 if (!xblocks) {
                     return outline;
                 }
 
-                outline.child_info = cInfo; // eslint-disable-line no-param-reassign
+                outline.child_info = childInfo; // eslint-disable-line no-param-reassign
                 _.each(_.range(xblocks), function(xblockIndex) {
-                    cInfo.children.push(
-                        createChildXBlockInfo(category, options, xblockIndex)
+                    childInfo.children.push(
+                        createChildXBlockInfo(category, outlineOptions, xblockIndex)
                     );
                 });
                 return outline;
             };
 
-            createCourseOutline = function(options) {
+            /**
+             * Create course outline.
+             *
+             * @param {Object} outlineOptions   options according to which outline was created
+             * @returns {Object}
+             */
+            createCourseOutline = function(outlineOptions) {
                 var courseOutline = {
                     category: 'course',
                     display_name: 'Demo Course',
                     id: 'COURSE_ID_101'
                 };
-
-                return createXBlockInfo('section', options, courseOutline);
+                return createXBlockInfo('section', outlineOptions, courseOutline);
             };
 
-            renderViews = function(courseOutlineJson, ancestorInfo) {
+            /**
+             * Render breadcrumb and XBlock list view.
+             *
+             * @param {any} courseOutlineInfo      course outline info
+             * @param {any} ancestorInfo           ancestors info
+             */
+            renderViews = function(courseOutlineInfo, ancestorInfo) {
                 moveXBlockBreadcrumbView = new MoveXBlockBreadcrumbView({});
                 moveXBlockListView = new MoveXBlockListView(
                     {
-                        model: new XBlockInfoModel(courseOutlineJson, {parse: true}),
+                        model: new XBlockInfoModel(courseOutlineInfo, {parse: true}),
                         ancestorInfo: ancestorInfo || {ancestors: []}
                     }
                 );
             };
 
+            /**
+             * Extract displayed XBlock list info.
+             *
+             * @returns {Object}
+             */
             getDisplayedInfo = function() {
                 var viewEl = moveXBlockListView.$el;
                 return {
@@ -109,6 +138,13 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
                 };
             };
 
+            /**
+             * Verify displayed XBlock list info.
+             *
+             * @param {String} category                 XBlock category
+             * @param {Integer} expectedXBlocksCount    number of XBlock childs displayed
+             * @param {Boolean} hasCurrentLocation      do we need to check current location
+             */
             verifyListViewInfo = function(category, expectedXBlocksCount, hasCurrentLocation) {
                 var displayedInfo = getDisplayedInfo();
                 expect(displayedInfo.categoryText).toEqual(moveXBlockListView.categoriesText[category] + ':');
@@ -124,42 +160,74 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
                     }
                     expect(displayedInfo.forwardButtonSRTexts).toEqual(
                         _.map(_.range(expectedXBlocksCount), function() {
-                            return 'Press button to see ' + category + ' childs';
+                            return 'Press button to see ' + category + ' children';
                         })
                     );
                     expect(displayedInfo.forwardButtonCount).toEqual(expectedXBlocksCount);
                 }
             };
 
+            /**
+             * Verify rendered breadcrumb info.
+             *
+             * @param {any} category        XBlock category
+             * @param {any} xblockIndex     XBlock index
+             */
             verifyBreadcrumbViewInfo = function(category, xblockIndex) {
                 var displayedBreadcrumbs = moveXBlockBreadcrumbView.$el.find('.breadcrumbs .bc-container').map(
                     function() { return $(this).text().trim(); }
                 ).get(),
-                    categories = _.keys(parentToChildMap).concat(['component']),
+                    categories = _.keys(parentChildMap).concat(['component']),
                     visitedCategories = categories.slice(0, _.indexOf(categories, category));
 
                 expect(displayedBreadcrumbs).toEqual(
-                    _.map(visitedCategories, function(cat) {
-                        return cat === 'course' ?
-                            'Course Outline' : cat + '_display_name_' + xblockIndex;
+                    _.map(visitedCategories, function(visitedCategory) {
+                        return visitedCategory === 'course' ?
+                            'Course Outline' : visitedCategory + '_display_name_' + xblockIndex;
                     })
                 );
             };
 
+            /**
+             * Click forward button in the list of displayed XBlocks.
+             *
+             * @param {any} buttonIndex     forward button index
+             */
             clickForwardButton = function(buttonIndex) {
+                buttonIndex = buttonIndex || 0;  // eslint-disable-line no-param-reassign
                 moveXBlockListView.$el.find('[data-item-index="' + buttonIndex + '"] button').click();
             };
 
+            /**
+             * Click on last clickable breadcrumb button.
+             */
             clickBreadcrumbButton = function() {
                 moveXBlockBreadcrumbView.$el.find('.bc-container button').last().click();
             };
 
+            /**
+             * Returns the parent or child category of current XBlock.
+             *
+             * @param {String} direction    `forward` or `backward`
+             * @param {String} category     XBlock category
+             * @returns {String}
+             */
             nextCategory = function(direction, category) {
-                return direction === 'forward' ? parentToChildMap[category] : _.invert(parentToChildMap)[category];
+                return direction === 'forward' ? parentChildMap[category] : _.invert(parentChildMap)[category];
             };
 
-            verifyXBlockInfo = function(options, category, buttonIndex, direction, hasCurrentLocation) {
-                var expectedXBlocksCount = options[category];
+            /**
+             * Verify renderd info of breadcrumbs and XBlock list.
+             *
+             * @param {Object} outlineOptions       options according to which outline was created
+             * @param {String} category             XBlock category
+             * @param {Integer} buttonIndex         forward button index
+             * @param {String} direction            `forward` or `backward`
+             * @param {String} hasCurrentLocation   do we need to check current location
+             * @returns
+             */
+            verifyXBlockInfo = function(outlineOptions, category, buttonIndex, direction, hasCurrentLocation) {
+                var expectedXBlocksCount = outlineOptions[category];
 
                 verifyListViewInfo(category, expectedXBlocksCount, hasCurrentLocation);
                 verifyBreadcrumbViewInfo(category, buttonIndex);
@@ -177,7 +245,7 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
                 }
                 category = nextCategory(direction, category);  // eslint-disable-line no-param-reassign
 
-                verifyXBlockInfo(options, category, buttonIndex, direction, hasCurrentLocation);
+                verifyXBlockInfo(outlineOptions, category, buttonIndex, direction, hasCurrentLocation);
             };
 
             it('renders views with correct information', function() {
@@ -194,7 +262,7 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
 
                 renderViews(outline);
                 _.each(_.range(3), function() {
-                    clickForwardButton(0);
+                    clickForwardButton();
                 });
 
                 _.each(['component', 'unit', 'subsection', 'section'], function(category) {
@@ -240,7 +308,7 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
                 verifyXBlockInfo(outlineOptions, 'section', 1, 'forward', false);
             });
 
-            it('shows correct message when parent has no childs', function() {
+            it('shows correct message when parent has no children', function() {
                 var outlinesInfo = [
                     {
                         outline: createCourseOutline({}),
@@ -266,7 +334,7 @@ define(['jquery', 'underscore', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpe
                 _.each(outlinesInfo, function(info) {
                     renderViews(info.outline);
                     _.each(_.range(info.forwardClicks), function() {
-                        clickForwardButton(0);
+                        clickForwardButton();
                     });
                     expect(moveXBlockListView.$el.find('.xblock-no-child-message').text().trim()).toEqual(info.message);
                     moveXBlockListView.undelegateEvents();

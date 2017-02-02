@@ -1,5 +1,5 @@
 /**
- * MoveXBlockBreadcrumb shows back button and breadcrumb to move back to parent.
+ * MoveXBlockBreadcrumb show breadcrumbs to move back to parent.
  */
 define([
     'jquery', 'backbone', 'underscore', 'gettext',
@@ -23,7 +23,7 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, MoveXBlockBreadcrumbVi
 
         initialize: function() {
             this.template = HtmlUtils.template(MoveXBlockBreadcrumbViewTemplate);
-            this.listenTo(Backbone, 'move:childrenRendered', this.updateView);
+            this.listenTo(Backbone, 'move:childrenRendered', this.render);
         },
 
         render: function(options) {
@@ -35,15 +35,16 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, MoveXBlockBreadcrumbVi
             return this;
         },
 
+        /**
+         * Event handler for breadcrumb button press.
+         *
+         * @param {Object} event
+         */
         handleBreadcrumbButtonPress: function(event) {
             Backbone.trigger(
                 'move:breadcrumbButtonPressed',
                 $(event.target).data('parentIndex')
             );
-        },
-
-        updateView: function(args) {
-            this.render(args);
         }
     });
 

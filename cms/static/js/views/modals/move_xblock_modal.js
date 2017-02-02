@@ -16,7 +16,7 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
     var MoveXblockModal = BaseModal.extend({
         options: $.extend({}, BaseModal.prototype.options, {
             modalName: 'move-xblock',
-            modalSize: 'ml',
+            modalSize: 'lg',
             addPrimaryActionButton: true,
             primaryActionButtonType: 'move',
             viewSpecificClasses: 'move-modal',
@@ -25,6 +25,7 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
         }),
 
         initialize: function() {
+            var self = this;
             BaseModal.prototype.initialize.call(this);
             this.listenTo(Backbone, 'move:breadcrumbRendered', this.focusModal);
             this.sourceXBlockInfo = this.options.sourceXBlockInfo;
@@ -35,7 +36,11 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
             );
             this.outlineURL = this.options.outlineURL;
             this.options.title = this.getTitle();
-            this.fetchCourseOutline();
+            this.fetchCourseOutline().done(function(courseOutlineInfo, ancestorInfo) {
+                $('.ui-loading').addClass('is-hidden');
+                $('.breadcrumb-container').removeClass('is-hidden');
+                self.renderViews(courseOutlineInfo, ancestorInfo);
+            });
         },
 
         getTitle: function() {
@@ -69,15 +74,10 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
         },
 
         fetchCourseOutline: function() {
-            var self = this;
-            $.when(
+            return $.when(
                 this.fetchData(this.outlineURL),
                 this.fetchData(this.XBlockAncestorInfoUrl)
-            ).then(function(courseOutlineInfo, ancestorInfo) {
-                $('.ui-loading').addClass('is-hidden');
-                $('.breadcrumb-container').removeClass('is-hidden');
-                self.renderViews(courseOutlineInfo, ancestorInfo);
-            });
+            );
         },
 
         fetchData: function(url) {
