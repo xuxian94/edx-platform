@@ -13,8 +13,10 @@
                         </span>
                     <% } %>
                 </h2>
-                <ul class="editor-modes action-list action-modes">
-                </ul>
+                <% if (showEditorModeButtons) { %>
+                    <ul class="editor-modes action-list action-modes">
+                    </ul>
+                <% } %>
             </div>
             <div class="modal-content">
             </div>

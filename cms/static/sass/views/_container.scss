@@ -344,13 +344,15 @@
 
   .breadcrumb-container {
     margin-bottom: ($baseline/4);
-    border: 1px solid #D9D9D9;
+    border: 1px solid $btn-lms-border;
     padding: ($baseline/2);
-    background: #F2F8FB;
+    background: $color-background-bluish;
 
     .breadcrumbs {
+
       .bc-container {
         @include font-size(14);
+        display: inline-block;
 
         .breadcrumb-fa-icon {
           padding: 0 ($baseline/4);
@@ -379,7 +381,7 @@
   .category-text {
     @include margin-left($baseline/2);
     @include font-size(14);
-    color: #414141;
+    color: $black;
   }
 
   .xblock-items-container {
@@ -389,12 +391,12 @@
     .xblock-item {
       & > * {
         width: 100%;
-        color: #065683;
+        color: $uxpl-blue-hover-active;
       }
 
       .component {
         display: block;
-        color: #414141;
+        color: $black;
       }
 
       .button-forward, .component {
@@ -416,7 +418,7 @@
         }
 
         &:hover, &:focus {
-          background: rgb(242, 248, 251);
+          background: $color-background-bluish;
         }
       }
     }

@@ -56,8 +56,8 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
                         xblocks: this.childrenInfo.children,
                         noChildText: this.getNoChildText(),
                         categoryText: this.getCategoryText(),
+                        parentDisplayname: this.parentInfo.parent.get('display_name'),
                         XBlocksCategory: this.childrenInfo.category,
-                        forwardButtonSRText: this.getForwardButtonSRText(),
                         currentLocationIndex: this.getCurrentLocationIndex()
                     }
                 )
@@ -165,19 +165,6 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
          */
         getCategoryText: function() {
             return this.categoriesText[this.childrenInfo.category];
-        },
-
-        /**
-         * Get screen reader text for forward button.
-         *
-         * @returns {String}
-         */
-        getForwardButtonSRText: function() {
-            return StringUtils.interpolate(
-                // Translators: Text will read like View this section's children, View this unit's children
-                gettext("View this {XBlockCategory}'s children"),
-                {XBlockCategory: this.childrenInfo.category}
-            );
         },
 
         /**

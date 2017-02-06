@@ -17,6 +17,7 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
         options: $.extend({}, BaseModal.prototype.options, {
             modalName: 'move-xblock',
             modalSize: 'lg',
+            showEditorModeButtons: false,
             addPrimaryActionButton: true,
             primaryActionButtonType: 'move',
             viewSpecificClasses: 'move-modal',
@@ -71,6 +72,7 @@ function($, Backbone, _, gettext, BaseView, BaseModal, XBlockInfoModel, MoveXBlo
 
         focusModal: function() {
             Feedback.prototype.inFocus.apply(this, [this.options.modalWindowClass]);
+            $(this.options.modalWindowClass).focus();
         },
 
         fetchCourseOutline: function() {
