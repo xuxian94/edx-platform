@@ -10,10 +10,12 @@ from django.core.urlresolvers import reverse
 from django.utils.functional import cached_property
 from opaque_keys.edx.keys import CourseKey
 from pytz import utc
+from itertools import chain
 
 from course_modes.models import CourseMode
 from lms.djangoapps.certificates import api as certificate_api
 from lms.djangoapps.commerce.utils import EcommerceService
+from lms.djangoapps.courseware.access import has_access
 from openedx.core.djangoapps.catalog.utils import get_programs
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from student.models import CourseEnrollment
@@ -248,12 +250,9 @@ class ProgramDataExtender(object):
         self.course_overview = None
         self.enrollment_start = None
 
-    def extend(self, include_instructors=False):
+    def extend(self):
         """Execute extension handlers, returning the extended data."""
-        if include_instructors:
-            self._execute('_extend')
-        else:
-            self._execute('_extend_course_runs')
+        self._execute('_extend')
         return self.data
 
     def _execute(self, prefix, *args):
@@ -264,9 +263,6 @@ class ProgramDataExtender(object):
     def _handlers(cls, prefix):
         """Returns a generator yielding method names beginning with the given prefix."""
         return (name for name in cls.__dict__ if name.startswith(prefix))
-
-    def _extend_with_instructors(self):
-        self._execute('_attach_instructors')
 
     def _extend_course_runs(self):
         """Execute course run data handlers."""
@@ -280,7 +276,10 @@ class ProgramDataExtender(object):
                 self._execute('_attach_course_run', course_run)
 
     def _attach_course_run_certificate_url(self, run_mode):
-        certificate_data = certificate_api.certificate_downloadable_status(self.user, self.course_run_key)
+        certificate_data = certificate_api.certificate_downloadable_status(
+            self.user,
+            self.course_run_key
+        ) if not self.user.is_anonymous() else {}
         certificate_uuid = certificate_data.get('uuid')
         run_mode['certificate_url'] = certificate_api.get_certificate_url(
             user_id=self.user.id,  # Providing user_id allows us to fall back to PDF certificates
@@ -316,10 +315,12 @@ class ProgramDataExtender(object):
         run_mode['advertised_start'] = self.course_overview.advertised_start
 
     def _attach_course_run_upgrade_url(self, run_mode):
-        required_mode_slug = run_mode['type']
-        enrolled_mode_slug, _ = CourseEnrollment.enrollment_mode_for_user(self.user, self.course_run_key)
-        is_mode_mismatch = required_mode_slug != enrolled_mode_slug
-        is_upgrade_required = is_mode_mismatch and CourseEnrollment.is_enrolled(self.user, self.course_run_key)
+        is_upgrade_required = None
+        if not self.user.is_anonymous():
+            required_mode_slug = run_mode['type']
+            enrolled_mode_slug, _ = CourseEnrollment.enrollment_mode_for_user(self.user, self.course_run_key)
+            is_mode_mismatch = required_mode_slug != enrolled_mode_slug
+            is_upgrade_required = is_mode_mismatch and CourseEnrollment.is_enrolled(self.user, self.course_run_key)
 
         if is_upgrade_required:
             # Requires that the ecommerce service be in use.
@@ -334,31 +335,79 @@ class ProgramDataExtender(object):
         else:
             run_mode['upgrade_url'] = None
 
-    def _attach_instructors(self):
+    def _attach_course_run_can_enroll(self, run_mode):
+        run_mode['can_enroll'] = bool(has_access(self.user, 'enroll', self.course_overview))
+
+
+# pylint: disable=missing-docstring
+class ProgramMarketingDataExtender(ProgramDataExtender):
+    """
+    Utility for extending program data meant for the program marketing page with
+    user-specific (e.g., CourseEnrollment) data, pricing data, and program instructor data.
+
+    Arguments:
+        program_data (dict): Representation of a program.
+        user (User): The user whose enrollments to inspect.
+    """
+    def __init__(self, program_data, user):
+        super(ProgramMarketingDataExtender, self).__init__(program_data, user)
+
+        # Aggregate dict of instructors for the program keyed by name
+        self.instructors = {}
+
+        # Values for programs' price calculation.
+        self.data['avg_price_per_course'] = 0
+        self.data['number_of_courses'] = 0
+        self.data['full_program_price'] = 0
+
+    def _extend_program(self):
+        """Aggregates data from the program data structure."""
+        cache_key = 'program.instructors.{uuid}'.format(
+            uuid=self.data['uuid']
+        )
+        program_instructors = cache.get(cache_key)
+
+        for course in self.data['courses']:
+            self._execute('_collect_course', course)
+            if not program_instructors:
+                for course_run in course['course_runs']:
+                    self._execute('_collect_instructors', course_run)
+
+        if not program_instructors:
+            # We cache the program instructors list to avoid repeated modulestore queries
+            program_instructors = self.instructors.values()
+            cache.set(cache_key, program_instructors, 3600)
+
+        self.data['instructors'] = program_instructors
+
+    @classmethod
+    def _handlers(cls, prefix):
+        """Returns a generator yielding method names beginning with the given prefix."""
+        return (name for name in chain(cls.__dict__, ProgramDataExtender.__dict__) if name.startswith(prefix))
+
+    def _collect_course_pricing(self, course):
+        self.data['number_of_courses'] += 1
+        course_runs = course['course_runs']
+        if course_runs:
+            seats = course_runs[0]['seats']
+            if seats:
+                self.data['full_program_price'] += float(seats[0]['price'])
+            self.data['avg_price_per_course'] = self.data['full_program_price'] / self.data['number_of_courses']
+
+    def _collect_instructors(self, course_run):
         """
         Extend the program data with instructor data. The instructor data added here is persisted
         on each course in modulestore and can be edited in Studio. Once the course metadata publisher tool
         supports the authoring of course instructor data, we will be able to migrate course
         instructor data into the catalog, retrieve it via the catalog API, and remove this code.
         """
-        cache_key = 'program.instructors.{uuid}'.format(
-            uuid=self.data['uuid']
-        )
-        program_instructors = cache.get(cache_key)
-        if not program_instructors:
-            instructors_by_name = {}
-            module_store = modulestore()
-            for course in self.data['courses']:
-                for course_run in course['course_runs']:
-                    course_run_key = CourseKey.from_string(course_run['key'])
-                    course_descriptor = module_store.get_course(course_run_key)
-                    if course_descriptor:
-                        course_instructors = getattr(course_descriptor, 'instructor_info', {})
-                        # Deduplicate program instructors using instructor name
-                        instructors_by_name.update({instructor.get('name'): instructor for instructor
-                                                    in course_instructors.get('instructors', [])})
+        module_store = modulestore()
+        course_run_key = CourseKey.from_string(course_run['key'])
+        course_descriptor = module_store.get_course(course_run_key)
+        if course_descriptor:
+            course_instructors = getattr(course_descriptor, 'instructor_info', {})
 
-            program_instructors = instructors_by_name.values()
-            cache.set(cache_key, program_instructors, 3600)
-
-        self.data['instructors'] = program_instructors
+            # Deduplicate program instructors using instructor name
+            self.instructors.update(
+                {instructor.get('name'): instructor for instructor in course_instructors.get('instructors', [])}
+            )
