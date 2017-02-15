@@ -135,10 +135,11 @@ function($, Backbone, _, gettext, BaseView, XBlockViewUtils, MoveXBlockUtils, Ht
                 $moveButton.addClass('is-disabled');
             }
         },
-        validCategoryCheck: function(targetParentType, sourceParentType) {
-            if (!_.contains(['course, chapter, sequential, vertical'], sourceParentType)) {
-                sourceParentType = 'vertical';  // eslint-disable-line no-param-reassign
-            }
+
+        isValidCategory: function(targetParentType, sourceParentType) {
+            // treat split test as a vertical
+            // eslint-disable-next-line no-param-reassign
+            sourceParentType = sourceParentType === 'split_test' ? 'vertical' : sourceParentType;
             return targetParentType === sourceParentType;
         },
 
@@ -147,7 +148,7 @@ function($, Backbone, _, gettext, BaseView, XBlockViewUtils, MoveXBlockUtils, Ht
                 sourceParentType = this.sourceParentXBlockInfo.get('category'),
                 targetParentType = targetParentXBlockInfo.get('category');
 
-            if (this.validCategoryCheck(targetParentType, sourceParentType)
+            if (this.isValidCategory(targetParentType, sourceParentType)
                 && this.sourceParentXBlockInfo.id !== targetParentXBlockInfo.id) {
                 isValidMove = true;
                 this.targetParentXBlockInfo = targetParentXBlockInfo;

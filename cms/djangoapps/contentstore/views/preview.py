@@ -136,7 +136,6 @@ class PreviewModuleSystem(ModuleSystem):  # pylint: disable=abstract-method
         """
         Renders a placeholder XBlock.
         """
-        from nose.tools import set_trace;set_trace()
         return self.wrap_xblock(block, view_name, Fragment(), context)
 
     def layout_asides(self, block, context, frag, view_name, aside_frag_fns):
@@ -271,7 +270,11 @@ def _is_xblock_movable(xblock):
     """
     Returns true if the specified xblock can be moved otherwise returns false.
     """
-    return not (isinstance(xblock.location, LibraryUsageLocator) or xblock.parent.category == 'library_content')
+    return not (
+        isinstance(xblock.location, LibraryUsageLocator) or
+        (xblock.parent and xblock.parent.category == 'library_content')
+    )
+
 
 # pylint: disable=unused-argument
 def _studio_wrap_xblock(xblock, view, frag, context, display_name_only=False):

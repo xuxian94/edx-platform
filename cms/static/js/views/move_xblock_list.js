@@ -27,8 +27,9 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
             section: 'subsection',
             subsection: 'unit',
             unit: 'component',
-            split_test: 'group',
-            group: 'component'
+            split_test: 'group',    // A spit test contains groups (units)
+            group: 'component',  // Group is actually a unit, but move is not allowed on group, so we need to identify.
+            component: 'component' // A component can contain components.
         },
 
         categoriesText: {
@@ -126,11 +127,8 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
          * Set parent and child XBlock categories.
          */
         setDisplayedXBlocksCategories: function() {
-            this.parentInfo.category = XBlockUtils.getXBlockType(
-                this.parentInfo.parent.get('category'),
-                this.visitedAncestors[this.visitedAncestors.length - 2]
-            );
-            this.childrenInfo.category = this.categoryRelationMap[this.parentInfo.category] || 'component';
+            this.parentInfo.category = XBlockUtils.getXBlockType(this.parentInfo.parent.get('category'));
+            this.childrenInfo.category = this.categoryRelationMap[this.parentInfo.category];
         },
 
         /**
