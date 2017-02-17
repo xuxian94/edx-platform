@@ -1093,6 +1093,7 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
             # a percent value out of 100, e.g. "58%" means "58/100".
             pct_sign=_('%'))
 
+    user_partitions = get_user_partition_info(xblock, course=course)
     xblock_info = {
         'id': unicode(xblock.location),
         'display_name': xblock.display_name_with_default,
@@ -1101,6 +1102,8 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
     if is_concise:
         if child_info and len(child_info.get('children', [])) > 0:
             xblock_info['child_info'] = child_info
+        group_display_name = get_group_xblock_name(user_partitions, xblock_info['display_name'])
+        xblock_info['display_name'] = group_display_name[0] if group_display_name else xblock_info['display_name']
     else:
         xblock_info.update({
             'edited_on': get_default_time_display(xblock.subtree_edited_on) if xblock.subtree_edited_on else None,
@@ -1121,7 +1124,7 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
             'actions': xblock_actions,
             'explanatory_message': explanatory_message,
             'group_access': xblock.group_access,
-            'user_partitions': get_user_partition_info(xblock, course=course),
+            'user_partitions': user_partitions,
         })
 
         if xblock.category == 'sequential':
@@ -1178,6 +1181,25 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
             else:
                 xblock_info['staff_only_message'] = False
     return xblock_info
+
+
+def get_group_xblock_name(user_partitions, xblock_display_name):
+    """
+    Get the group name if matching group xblock is found.
+
+    Arguments:
+        user_partitions (Dict): Locator of source item.
+        xblock_display_name (String): Display name of group xblock.
+
+    Returns:
+        group name (String): Group name of the matching group.
+    """
+    return [
+        group['name']
+        for user_partition in user_partitions
+        for group in user_partition['groups']
+        if str(group['id']) in xblock_display_name
+    ]
 
 
 def add_container_page_publishing_info(xblock, xblock_info):  # pylint: disable=invalid-name
