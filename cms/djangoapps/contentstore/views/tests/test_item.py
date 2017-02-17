@@ -1611,6 +1611,31 @@ class TestEditSplitModule(ItemTest):
         self.assertEqual(vertical_0.location, split_test.group_id_to_child['0'])
         self.assertEqual(vertical_1.location, split_test.group_id_to_child['1'])
 
+    def test_split_xblock_info_group_name(self):
+        """
+        Test that concise outline for split test component gives display name as group name.
+        """
+        split_test = self.get_item_from_modulestore(self.split_test_usage_key, verify_is_draft=True)
+        # Initially, no user_partition_id is set, and the split_test has no children.
+        self.assertEqual(-1, split_test.user_partition_id)
+        self.assertEqual(0, len(split_test.children))
+        # Set the user_partition_id to 0.
+        split_test = self._update_partition_id(0)
+        # Verify that child verticals have been set to match the groups
+        self.assertEqual(2, len(split_test.children))
+
+        # Get xblock outline
+        xblock_info = create_xblock_info(
+            split_test,
+            is_concise=True,
+            include_child_info=True,
+            include_children_predicate=lambda xblock: xblock.has_children,
+            course=self.course,
+            user=self.request.user
+        )
+        self.assertEqual(xblock_info['child_info']['children'][0]['display_name'], 'alpha')
+        self.assertEqual(xblock_info['child_info']['children'][1]['display_name'], 'beta')
+
     def test_change_user_partition_id(self):
         """
         Test what happens when the user_partition_id is changed to a different groups
