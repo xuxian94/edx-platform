@@ -1617,12 +1617,12 @@ class TestEditSplitModule(ItemTest):
         """
         split_test = self.get_item_from_modulestore(self.split_test_usage_key, verify_is_draft=True)
         # Initially, no user_partition_id is set, and the split_test has no children.
-        self.assertEqual(-1, split_test.user_partition_id)
-        self.assertEqual(0, len(split_test.children))
+        self.assertEqual(split_test.user_partition_id, -1)
+        self.assertEqual(len(split_test.children), 0)
         # Set the user_partition_id to 0.
         split_test = self._update_partition_id(0)
         # Verify that child verticals have been set to match the groups
-        self.assertEqual(2, len(split_test.children))
+        self.assertEqual(len(split_test.children), 2)
 
         # Get xblock outline
         xblock_info = create_xblock_info(

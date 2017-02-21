@@ -688,8 +688,11 @@ def _move_item(source_usage_key, target_parent_usage_key, user, target_index=Non
         JsonResponse: Information regarding move operation. It may contains error info if an invalid move operation
             is performed.
     """
-    # Get the list of all component type XBlocks
-    component_types = sorted(set(name for name, class_ in XBlock.load_classes()) - set(DIRECT_ONLY_CATEGORIES))
+    # Get the list of all parantable component type XBlocks.
+    parent_component_types = list(
+        set(name for name, class_ in XBlock.load_classes() if getattr(class_, 'has_children', False)) -
+        set(DIRECT_ONLY_CATEGORIES)
+    )
 
     store = modulestore()
     with store.bulk_operations(source_usage_key.course_key):
@@ -705,12 +708,12 @@ def _move_item(source_usage_key, target_parent_usage_key, user, target_index=Non
         source_index = _get_source_index(source_usage_key, source_parent)
 
         valid_move_type = {
-            'vertical': source_type if source_type in component_types else 'component',
             'sequential': 'vertical',
             'chapter': 'sequential',
         }
 
-        if valid_move_type.get(target_parent_type, '') != source_type:
+        if valid_move_type.get(target_parent_type, '') != source_type \
+                and target_parent_type not in parent_component_types:
             error = 'You can not move {source_type} into {target_parent_type}.'.format(
                 source_type=source_type,
                 target_parent_type=target_parent_type,
@@ -1102,8 +1105,10 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
     if is_concise:
         if child_info and len(child_info.get('children', [])) > 0:
             xblock_info['child_info'] = child_info
-        group_display_name = get_group_xblock_name(user_partitions, xblock_info['display_name'])
-        xblock_info['display_name'] = group_display_name[0] if group_display_name else xblock_info['display_name']
+        # Groups are labelled with their internal ids, rather than with the group name. Replace id with display name.
+        group_display_name = get_group_display_name(user_partitions, xblock_info['display_name'])
+        xblock_info['display_name'] = group_display_name if group_display_name else xblock_info['display_name']
+        xblock_info['has_children'] = xblock.has_children
     else:
         xblock_info.update({
             'edited_on': get_default_time_display(xblock.subtree_edited_on) if xblock.subtree_edited_on else None,
@@ -1183,7 +1188,7 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
     return xblock_info
 
 
-def get_group_xblock_name(user_partitions, xblock_display_name):
+def get_group_display_name(user_partitions, xblock_display_name):
     """
     Get the group name if matching group xblock is found.
 
@@ -1194,13 +1199,10 @@ def get_group_xblock_name(user_partitions, xblock_display_name):
     Returns:
         group name (String): Group name of the matching group.
     """
-    return [
-        group['name']
-        for user_partition in user_partitions
-        for group in user_partition['groups']
-        if str(group['id']) in xblock_display_name
-    ]
-
+    for user_partition in user_partitions:
+        for group in user_partition['groups']:
+            if str(group['id']) in xblock_display_name:
+                return group['name']
 
 def add_container_page_publishing_info(xblock, xblock_info):  # pylint: disable=invalid-name
     """

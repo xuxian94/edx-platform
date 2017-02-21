@@ -26,10 +26,7 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
             course: 'section',
             section: 'subsection',
             subsection: 'unit',
-            unit: 'component',
-            split_test: 'group',    // A spit test contains groups (units)
-            group: 'component',  // Group is actually a unit, but move is not allowed on group, so we need to identify.
-            component: 'component' // A component can contain components.
+            unit: 'component'
         },
 
         categoriesText: {
@@ -127,7 +124,15 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
          * Set parent and child XBlock categories.
          */
         setDisplayedXBlocksCategories: function() {
+            var childCategory = 'component';
             this.parentInfo.category = XBlockUtils.getXBlockType(this.parentInfo.parent.get('category'));
+            if (!_.contains(_.keys(this.categoryRelationMap), this.parentInfo.category)) {
+                if (this.parentInfo.category === 'split_test') {
+                    childCategory = 'group';    // This is just to show groups text on group listing.
+                }
+                this.categoryRelationMap[this.parentInfo.category] = childCategory;
+            }
+            this.parentInfo.category = this.parentInfo.category;
             this.childrenInfo.category = this.categoryRelationMap[this.parentInfo.category];
         },
 

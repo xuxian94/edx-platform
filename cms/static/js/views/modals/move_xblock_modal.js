@@ -136,20 +136,28 @@ function($, Backbone, _, gettext, BaseView, XBlockViewUtils, MoveXBlockUtils, Ht
             }
         },
 
-        isValidCategory: function(targetParentType, sourceParentType) {
-            // treat split test as a vertical
+        isValidCategory: function(sourceParentType, targetParentType, targetHasChildren) {
+            var basicBlockTypes = ['course', 'chapter', 'sequential', 'vertical'];
+            // Support move component under content experiment. Treat source parent components as a verticals.
             // eslint-disable-next-line no-param-reassign
             sourceParentType = sourceParentType === 'split_test' ? 'vertical' : sourceParentType;
+            // Support move to parentable target parent components. Treat target parent components as a verticals.
+            if (targetHasChildren && !_.contains(basicBlockTypes, targetParentType) &&
+                // Moving a component directly to content experiment is not allowed, we need to visit to group level.
+                targetParentType !== 'split_test') {
+                targetParentType = 'vertical';  // eslint-disable-line no-param-reassign
+            }
             return targetParentType === sourceParentType;
         },
 
         enableMoveOperation: function(targetParentXBlockInfo) {
             var isValidMove = false,
                 sourceParentType = this.sourceParentXBlockInfo.get('category'),
-                targetParentType = targetParentXBlockInfo.get('category');
+                targetParentType = targetParentXBlockInfo.get('category'),
+                targetHasChildren = targetParentXBlockInfo.get('has_children');
 
-            if (this.isValidCategory(targetParentType, sourceParentType)
-                && this.sourceParentXBlockInfo.id !== targetParentXBlockInfo.id) {
+            if (this.isValidCategory(sourceParentType, targetParentType, targetHasChildren) &&
+                this.sourceParentXBlockInfo.id !== targetParentXBlockInfo.id) {
                 isValidMove = true;
                 this.targetParentXBlockInfo = targetParentXBlockInfo;
             }
