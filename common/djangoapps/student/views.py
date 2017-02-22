@@ -573,10 +573,8 @@ def is_course_blocked(request, redeemed_registration_codes, course_key):
     return blocked
 
 
-def compose_and_send_email(user, profile, registration):
-    """
-    Compose an email content for user and send activation email
-    """
+def compose_and_send_email(user, profile, registration=None, request=None):
+    """Compose an email content for user and send activation email"""
     dest_addr = user.email
     context = {
         'name': profile.name,
@@ -585,7 +583,7 @@ def compose_and_send_email(user, profile, registration):
     subject = render_to_string('emails/activation_email_subject.txt', context)
     # Email subject *must not* contain newlines
     subject = ''.join(subject.splitlines())
-    message_for_activation = render_to_string('emails/activation_email.txt', context)
+    message_for_activation = render_to_string('emails/activation_email.txt', context, request=request)
     from_address = configuration_helpers.get_value(
         'email_from_address',
         settings.DEFAULT_FROM_EMAIL
@@ -670,7 +668,7 @@ def dashboard(request):
     message = ""
     if not user.is_active:
         profile = UserProfile.objects.get(user=user)
-        registration = Registration.objects.get(user_id=user)
+        registration = Registration.objects.get(user=user)
         compose_and_send_email(user, profile, registration)
         message = render_to_string(
             'registration/activate_account_notice.html',
