@@ -8,10 +8,9 @@ from student.views import (
     reactivation_email_for_user, do_email_change_request, confirm_email_change,
     validate_new_email, SETTING_CHANGE_INITIATED
 )
-from student.models import UserProfile, PendingEmailChange
+from student.models import UserProfile, PendingEmailChange, Registration
 from student.tests.factories import UserFactory
 from student.views import compose_and_send_email
-from student.models import Registration
 from django.core.urlresolvers import reverse
 from django.core import mail
 from django.contrib.auth.models import User
@@ -24,7 +23,6 @@ from django.conf import settings
 from edxmako.shortcuts import render_to_string
 from util.request import safe_get_host
 from util.testing import EventTestMixin
-
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.theming.tests.test_util import with_comprehensive_theme
 
@@ -99,8 +97,7 @@ class ActivationEmailTests(TestCase):
 
     def setUp(self):
         super(ActivationEmailTests, self).setUp()
-        self.inactive_user = UserFactory()
-        self.inactive_user.is_active = False;
+        self.user = UserFactory(is_active=False)
         self.request_factory = RequestFactory()
 
     def test_activation_email(self):
@@ -140,16 +137,22 @@ class ActivationEmailTests(TestCase):
         for fragment in body_fragments:
             self.assertIn(fragment, msg.body)
 
-
     @mock.patch('student.tasks.log')
     def test_send_email_to_inactive_user(self, mock_log):
-        """Verify that the activation email has been sent to un-activated user(logged-in via social-auth)"""
-        request = self.request_factory.get('dashboard')
+        """
+        To verify that activation email has been sent to
+        an un-activated user(logged-in via social-auth)
+        """
+        request = self.request_factory.get(reverse('dashboard'))
+        request.user = self.user
         registration = Registration()
-        registration.register(self.inactive_user)
-        profile = UserProfile.objects.get(user=self.inactive_user)
-        compose_and_send_email(self.inactive_user, profile, registration, request=request)
-        mock_log.info.assert_called_with("Activation Email has been sent to User {user_email}".format(user_email=self.inactive_user.email))
+        registration.register(self.user)
+        profile = UserProfile.objects.get(user=self.user)
+        with patch('edxmako.request_context.get_current_request', return_value=request):
+            compose_and_send_email(self.user, profile, registration)
+            mock_log.info.assert_called_with(
+                "Activation Email has been sent to User {user_email}".format(user_email=self.user.email)
+            )
 
 
 @patch('student.views.render_to_string', Mock(side_effect=mock_render_to_string, autospec=True))

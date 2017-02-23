@@ -573,17 +573,28 @@ def is_course_blocked(request, redeemed_registration_codes, course_key):
     return blocked
 
 
-def compose_and_send_email(user, profile, registration=None, request=None):
-    """Compose an email content for user and send activation email"""
+def compose_and_send_email(user, profile, user_registration=None, request=None):
+    """
+    Construct all the required params and send the activation email
+    through celery task
+
+    Arguments:
+        user: current logged-in user
+        profile: profile object of the current logged-in user
+        registration: registration of the current logged-in user
+        request: current request
+    """
     dest_addr = user.email
+    if user_registration is None:
+        user_registration = Registration.objects.get(user=user)
     context = {
         'name': profile.name,
-        'key': registration.activation_key,
+        'key': user_registration.activation_key,
     }
     subject = render_to_string('emails/activation_email_subject.txt', context)
     # Email subject *must not* contain newlines
     subject = ''.join(subject.splitlines())
-    message_for_activation = render_to_string('emails/activation_email.txt', context, request=request)
+    message_for_activation = render_to_string('emails/activation_email.txt', context)
     from_address = configuration_helpers.get_value(
         'email_from_address',
         settings.DEFAULT_FROM_EMAIL
