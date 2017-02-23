@@ -940,6 +940,45 @@ class TestMoveItem(ItemTest):
         self.assertEqual(response['error'], 'You can not move an item into the same parent.')
         self.assertEqual(self.store.get_parent_location(self.html_usage_key), parent_loc)
 
+    def test_move_into_itself(self):
+        """
+        Test that a component can not be moved to itself.
+        """
+        lc_block = self.create_xblock(
+            parent_usage_key=self.vert_usage_key, display_name='library content block', category='library_content'
+        )
+        lc_block_usage_key = self.response_usage_key(lc_block)
+        parent_loc = self.store.get_parent_location(lc_block_usage_key)
+        self.assertEqual(parent_loc, self.vert_usage_key)
+        response = self._move_component(lc_block_usage_key, lc_block_usage_key)
+        self.assertEqual(response.status_code, 400)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['error'], 'You can not move an item into itself.')
+        self.assertEqual(self.store.get_parent_location(self.html_usage_key), parent_loc)
+
+    def test_move_into_child_item(self):
+        """
+        Test that a component can not be moved inside any of it's child.
+        """
+        # Create a vertical with vertical in it
+        parent_vert_usage_key = self._create_vertical(parent_usage_key=self.vert_usage_key)
+        child1_vert_usage_key = self._create_vertical(parent_usage_key=parent_vert_usage_key)
+        child2_vert_usage_key = self._create_vertical(parent_usage_key=child1_vert_usage_key)
+        child3_vert_usage_key = self._create_vertical(parent_usage_key=child2_vert_usage_key)
+
+        parent_loc = self.store.get_parent_location(parent_vert_usage_key)
+        self.assertEqual(parent_loc, self.vert_usage_key)
+
+        # Try to move to a child vertical nested many level down.
+        for child_vert_usage_key in [child1_vert_usage_key, child2_vert_usage_key, child3_vert_usage_key]:
+            response = self._move_component(parent_vert_usage_key, child_vert_usage_key)
+            self.assertEqual(response.status_code, 400)
+            response = json.loads(response.content)
+
+            self.assertEqual(response['error'], 'You can not move an item into it\'s child.')
+            self.assertEqual(self.store.get_parent_location(parent_vert_usage_key), parent_loc)
+
     def test_move_invalid_source_index(self):
         """
         Test moving an item to an invalid index.

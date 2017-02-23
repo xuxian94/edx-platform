@@ -18,7 +18,7 @@
         var xblock = xblocks[i];
     %>
         <li class="xblock-item" data-item-index="<%- i %>">
-            <% if (xblock.get('child_info') || XBlocksCategory !== 'component') { %>
+            <% if (sourceXBlockId !== xblock.id && (xblock.get('child_info') || XBlocksCategory !== 'component')) { %>
                 <button class="button-forward" >
                     <span class="xblock-displayname truncate">
                         <%- xblock.get('display_name') %>
@@ -32,8 +32,15 @@
                     <span class="sr forward-sr-text"><%- gettext("Click for children") %></span>
                 </button>
             <% } else { %>
-                <span class="xblock-displayname component truncate">
-                    <%- xblock.get('display_name') %>
+                <span class="component">
+                    <span class="xblock-displayname truncate">
+                        <%- xblock.get('display_name') %>
+                    </span>
+                    <% if(currentLocationIndex === i) { %>
+                        <span class="current-location">
+                            (<%- gettext('Current location') %>)
+                        </span>
+                    <% } %>
                 </span>
             <% } %>
         </li>

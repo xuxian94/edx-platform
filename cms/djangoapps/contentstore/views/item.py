@@ -29,7 +29,7 @@ from cms.lib.xblock.authoring_mixin import VISIBILITY_VIEW
 from contentstore.utils import (
     find_release_date_source, find_staff_lock_source, is_currently_visible_to_students,
     ancestor_has_staff_lock, has_children_visible_to_specific_content_groups,
-    get_user_partition_info,
+    get_user_partition_info, get_group_display_name,
 )
 from contentstore.views.helpers import is_unit, xblock_studio_url, xblock_primary_child_category, \
     xblock_type_display_name, get_parent_xblock, create_xblock, usage_key_with_run
@@ -675,6 +675,21 @@ def _get_source_index(source_usage_key, source_parent):
         return None
 
 
+def is_source_item_in_target_parents(source_item, target_parent):
+    """
+    Returns True if source item is found in target parents otherwise False.
+
+    Arguments:
+        source_item (XBlock): Source xblock.
+        target_parent (XBlock): Target XBlock.
+    """
+    target_ancestors = _create_xblock_ancestor_info(target_parent, is_concise=True)['ancestors']
+    for target_ancestor in target_ancestors:
+        if unicode(source_item.location) == target_ancestor['id']:
+            return True
+    return False
+
+
 def _move_item(source_usage_key, target_parent_usage_key, user, target_index=None):
     """
     Move an existing xblock as a child of the supplied target_parent_usage_key.
@@ -688,7 +703,7 @@ def _move_item(source_usage_key, target_parent_usage_key, user, target_index=Non
         JsonResponse: Information regarding move operation. It may contains error info if an invalid move operation
             is performed.
     """
-    # Get the list of all parantable component type XBlocks.
+    # Get the list of all parentable component type XBlocks.
     parent_component_types = list(
         set(name for name, class_ in XBlock.load_classes() if getattr(class_, 'has_children', False)) -
         set(DIRECT_ONLY_CATEGORIES)
@@ -712,14 +727,18 @@ def _move_item(source_usage_key, target_parent_usage_key, user, target_index=Non
             'chapter': 'sequential',
         }
 
-        if valid_move_type.get(target_parent_type, '') != source_type \
-                and target_parent_type not in parent_component_types:
+        if (valid_move_type.get(target_parent_type, '') != source_type and
+                target_parent_type not in parent_component_types):
             error = 'You can not move {source_type} into {target_parent_type}.'.format(
                 source_type=source_type,
                 target_parent_type=target_parent_type,
             )
         elif source_parent.location == target_parent.location:
             error = 'You can not move an item into the same parent.'
+        elif source_item.location == target_parent.location:
+            error = 'You can not move an item into itself.'
+        elif is_source_item_in_target_parents(source_item, target_parent):
+            error = 'You can not move an item into it\'s child.'
         elif source_index is None:
             error = '{source_usage_key} not found in {parent_usage_key}.'.format(
                 source_usage_key=unicode(source_usage_key),
@@ -1187,22 +1206,6 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
                 xblock_info['staff_only_message'] = False
     return xblock_info
 
-
-def get_group_display_name(user_partitions, xblock_display_name):
-    """
-    Get the group name if matching group xblock is found.
-
-    Arguments:
-        user_partitions (Dict): Locator of source item.
-        xblock_display_name (String): Display name of group xblock.
-
-    Returns:
-        group name (String): Group name of the matching group.
-    """
-    for user_partition in user_partitions:
-        for group in user_partition['groups']:
-            if str(group['id']) in xblock_display_name:
-                return group['name']
 
 def add_container_page_publishing_info(xblock, xblock_info):  # pylint: disable=invalid-name
     """
