@@ -97,8 +97,6 @@ class ActivationEmailTests(TestCase):
 
     def setUp(self):
         super(ActivationEmailTests, self).setUp()
-        self.inactive_user = UserFactory(is_active=False)
-        self.request_factory = RequestFactory()
 
     def test_activation_email(self):
         self._create_account()
@@ -143,6 +141,8 @@ class ActivationEmailTests(TestCase):
         To verify that activation email has been sent to
         an un-activated user(logged-in via social-auth)
         """
+        self.inactive_user = UserFactory(is_active=False)
+        self.request_factory = RequestFactory()
         request = self.request_factory.get(reverse('dashboard'))
         registration = Registration()
         registration.register(self.inactive_user)
