@@ -1111,7 +1111,7 @@ else
             text = text.replace(/^\n+/g, '');
             text = text.replace(/\n+$/g, '');
 
-            var grafs = text.split(/\n{2,}/g);
+            var grafs = text.split(/\n/g);
             var grafsOut = [];
 
             var markerRe = /~K(\d+)K/;
@@ -1132,6 +1132,9 @@ else
                     str = str.replace(/^([ \t]*)/g, '<p>');
                     str += '</p>';
                     grafsOut.push(str);
+                }
+                else if(str == ""){
+                    grafsOut.push('<br>');
                 }
             }
             //
