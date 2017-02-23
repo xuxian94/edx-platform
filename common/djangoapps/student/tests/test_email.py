@@ -97,7 +97,7 @@ class ActivationEmailTests(TestCase):
 
     def setUp(self):
         super(ActivationEmailTests, self).setUp()
-        self.user = UserFactory(is_active=False)
+        self.inactive_user = UserFactory(is_active=False)
         self.request_factory = RequestFactory()
 
     def test_activation_email(self):
@@ -144,14 +144,15 @@ class ActivationEmailTests(TestCase):
         an un-activated user(logged-in via social-auth)
         """
         request = self.request_factory.get(reverse('dashboard'))
-        request.user = self.user
         registration = Registration()
-        registration.register(self.user)
-        profile = UserProfile.objects.get(user=self.user)
+        registration.register(self.inactive_user)
+        profile = UserProfile.objects.get(user=self.inactive_user)
         with patch('edxmako.request_context.get_current_request', return_value=request):
-            compose_and_send_email(self.user, profile, registration)
+            compose_and_send_email(self.inactive_user, profile, registration)
             mock_log.info.assert_called_with(
-                "Activation Email has been sent to User {user_email}".format(user_email=self.user.email)
+                "Activation Email has been sent to User {user_email}".format(
+                    user_email=self.inactive_user.email
+                )
             )
 
 
