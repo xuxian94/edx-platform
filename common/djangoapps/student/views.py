@@ -581,8 +581,7 @@ def compose_and_send_activation_email(user, profile, user_registration=None):
     Arguments:
         user: current logged-in user
         profile: profile object of the current logged-in user
-        registration: registration of the current logged-in user
-        request: current request
+        user_registration: registration of the current logged-in user
     """
     dest_addr = user.email
     if user_registration is None:
