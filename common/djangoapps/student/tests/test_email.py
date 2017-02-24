@@ -9,7 +9,6 @@ from student.views import (
     validate_new_email, SETTING_CHANGE_INITIATED
 )
 from student.models import UserProfile, PendingEmailChange, Registration
-from student.tests.factories import UserFactory
 from student.views import compose_and_send_activation_email
 from django.core.urlresolvers import reverse
 from django.core import mail
@@ -141,17 +140,17 @@ class ActivationEmailTests(TestCase):
         To verify that activation email has been sent to
         an un-activated user(logged-in via social-auth)
         """
-        self.inactive_user = UserFactory(is_active=False)
-        self.request_factory = RequestFactory()
-        request = self.request_factory.get(reverse('dashboard'))
+        inactive_user = UserFactory(is_active=False)
+        request_factory = RequestFactory()
+        request = request_factory.get(reverse('dashboard'))
         registration = Registration()
-        registration.register(self.inactive_user)
-        profile = UserProfile.objects.get(user=self.inactive_user)
+        registration.register(inactive_user)
+        profile = UserProfile.objects.get(user=inactive_user)
         with patch('edxmako.request_context.get_current_request', return_value=request):
-            compose_and_send_activation_email(self.inactive_user, profile, registration)
+            compose_and_send_activation_email(inactive_user, profile, registration)
             mock_log.info.assert_called_with(
                 "Activation Email has been sent to User {user_email}".format(
-                    user_email=self.inactive_user.email
+                    user_email=inactive_user.email
                 )
             )
 
