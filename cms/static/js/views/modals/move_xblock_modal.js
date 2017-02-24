@@ -160,7 +160,7 @@ function($, Backbone, _, gettext, BaseView, XBlockViewUtils, MoveXBlockUtils, Ht
 
             if (this.isValidCategory(sourceParentType, targetParentType, targetHasChildren) &&
                 this.sourceParentXBlockInfo.id !== targetParentXBlockInfo.id && // same parent case
-                this.sourceXBlockInfo.id !== targetParentXBlockInfo.id ) { // same source item case
+                this.sourceXBlockInfo.id !== targetParentXBlockInfo.id) { // same source item case
                 isValidMove = true;
                 this.targetParentXBlockInfo = targetParentXBlockInfo;
             }

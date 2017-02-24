@@ -55,7 +55,7 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
                 this.$el,
                 this.template(
                     {
-                        sourceXBlockId : this.sourceXBlockInfo.id,
+                        sourceXBlockId: this.sourceXBlockInfo.id,
                         xblocks: this.childrenInfo.children,
                         noChildText: this.getNoChildText(),
                         categoryText: this.getCategoryText(),
@@ -147,10 +147,9 @@ function($, Backbone, _, gettext, HtmlUtils, StringUtils, XBlockUtils, MoveXBloc
             var self = this,
                 currentLocationIndex;
             _.each(self.childrenInfo.children, function(xblock, index) {
-                if (xblock.get('id') === self.sourceXBlockInfo.id){
+                if (xblock.get('id') === self.sourceXBlockInfo.id) {
                     currentLocationIndex = index;
-                }
-                else {
+                } else {
                     _.each(self.ancestorInfo.ancestors, function(ancestor) {
                         if (ancestor.display_name === xblock.get('display_name') && ancestor.id === xblock.get('id')) {
                             currentLocationIndex = index;
