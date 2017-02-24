@@ -10,7 +10,7 @@ from student.views import (
 )
 from student.models import UserProfile, PendingEmailChange, Registration
 from student.tests.factories import UserFactory
-from student.views import compose_and_send_email
+from student.views import compose_and_send_activation_email
 from django.core.urlresolvers import reverse
 from django.core import mail
 from django.contrib.auth.models import User
@@ -148,7 +148,7 @@ class ActivationEmailTests(TestCase):
         registration.register(self.inactive_user)
         profile = UserProfile.objects.get(user=self.inactive_user)
         with patch('edxmako.request_context.get_current_request', return_value=request):
-            compose_and_send_email(self.inactive_user, profile, registration)
+            compose_and_send_activation_email(self.inactive_user, profile, registration)
             mock_log.info.assert_called_with(
                 "Activation Email has been sent to User {user_email}".format(
                     user_email=self.inactive_user.email

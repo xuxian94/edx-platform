@@ -573,7 +573,7 @@ def is_course_blocked(request, redeemed_registration_codes, course_key):
     return blocked
 
 
-def compose_and_send_email(user, profile, user_registration=None):
+def compose_and_send_activation_email(user, profile, user_registration=None):
     """
     Construct all the required params and send the activation email
     through celery task
@@ -678,8 +678,6 @@ def dashboard(request):
 
     message = ""
     if not user.is_active:
-        profile = UserProfile.objects.get(user=user)
-        compose_and_send_email(user, profile)
         message = render_to_string(
             'registration/activate_account_notice.html',
             {'email': user.email, 'platform_name': platform_name}
@@ -1877,7 +1875,7 @@ def create_account_with_params(request, params):
         )
     )
     if send_email:
-        compose_and_send_email(user, profile, registration)
+        compose_and_send_activation_email(user, profile, registration)
     else:
         registration.activate()
         _enroll_user_in_pending_courses(user)  # Enroll student in any pending courses
