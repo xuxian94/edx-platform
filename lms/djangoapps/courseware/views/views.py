@@ -108,6 +108,7 @@ from ..entrance_exams import user_must_complete_entrance_exam
 from ..module_render import get_module_for_descriptor, get_module, get_module_by_usage_id
 
 from web_fragments.fragment import Fragment
+from web_fragments.views import FragmentView
 
 log = logging.getLogger("edx.courseware")
 
