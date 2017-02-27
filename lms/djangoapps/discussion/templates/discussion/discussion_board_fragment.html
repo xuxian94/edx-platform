@@ -16,7 +16,7 @@ from openedx.core.djangolib.markup import HTML
 %>
 
 <section class="discussion discussion-board container" id="discussion-container"
-         data-course-id="${unicode(course.id)}"
+         data-course-id="${course.id}"
          data-user-create-comment="${json.dumps(can_create_comment)}"
          data-user-create-subcomment="${json.dumps(can_create_subcomment)}"
          data-read-only="false"

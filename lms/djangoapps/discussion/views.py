@@ -18,6 +18,7 @@ from django.template.loader import render_to_string
 from django.utils.translation import get_language_bidi
 from django.views.decorators.http import require_GET
 import newrelic.agent
+from rest_framework import status
 
 from web_fragments.fragment import Fragment
 
@@ -230,7 +231,7 @@ def forum_form_discussion(request, course_key):
             is_staff = has_permission(request.user, 'openclose_thread', course.id)
             threads = [utils.prepare_content(thread, course_key, is_staff) for thread in unsafethreads]
         except cc.utils.CommentClientMaintenanceError:
-            return HttpResponseServerError('Forum is in maintenance mode')
+            return HttpResponseServerError('Forum is in maintenance mode', status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except ValueError:
             return HttpResponseServerError("Invalid group_id")
 
@@ -338,7 +339,7 @@ def _find_thread(request, course, discussion_id, thread_id):
     return thread
 
 
-def _create_discussion_view_context(request, course_key):
+def _create_base_discussion_view_context(request, course_key):
     """
     Returns the default template context for rendering any discussion view.
     """
@@ -372,7 +373,7 @@ def _create_discussion_board_context(request, course_key, discussion_id=None, th
     Returns the template context for rendering the discussion board.
     """
     nr_transaction = newrelic.agent.current_transaction()
-    context = _create_discussion_view_context(request, course_key)
+    context = _create_base_discussion_view_context(request, course_key)
     course = context['course']
     course_settings = context['course_settings']
     user = context['user']
@@ -488,7 +489,7 @@ def user_profile(request, course_key, user_id):
             with newrelic.agent.FunctionTrace(nr_transaction, "get_cohort_info"):
                 user_cohort_id = get_cohort_id(request.user, course_key)
 
-            context = _create_discussion_view_context(request, course_key)
+            context = _create_base_discussion_view_context(request, course_key)
             context.update({
                 'django_user': django_user,
                 'django_user_roles': user_roles,
@@ -594,7 +595,7 @@ class DiscussionBoardFragmentView(EdxFragmentView):
     """
     Component implementation of the discussion board.
     """
-    def render_fragment(self, request, course_id=None, discussion_id=None, thread_id=None, **kwargs):
+    def render_to_fragment(self, request, course_id=None, discussion_id=None, thread_id=None, **kwargs):
         """
         Render the discussion board fragment.
 
@@ -619,7 +620,7 @@ class DiscussionBoardFragmentView(EdxFragmentView):
             inline_js = render_to_string('discussion/discussion_board_js.template', context)
 
             fragment = Fragment(html)
-            self.add_resource_urls(fragment)
+            self.add_fragment_resource_urls(fragment)
             fragment.add_javascript(inline_js)
             if not settings.REQUIRE_DEBUG:
                 fragment.add_javascript_url(staticfiles_storage.url('discussion/js/discussion_board_factory.js'))

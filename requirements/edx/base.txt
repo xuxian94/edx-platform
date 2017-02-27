@@ -207,7 +207,7 @@ py2neo==3.1.2
 -r coverage.txt
 
 # Support for plugins
-web-fragments==0.1.0
+git+https://github.com/andy-armstrong/web-fragments.git@25202db7eaafcb9d9b39878088c736e6b07e16e3#egg=web-fragments==0.2.0
 xblock==0.4.14
 
 # Third Party XBlocks

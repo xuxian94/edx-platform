@@ -85,7 +85,6 @@ from openedx.core.djangoapps.credit.api import (
     is_user_eligible_for_credit,
     is_credit_course
 )
-from openedx.core.djangoapps.plugin_api.views import FragmentContainerView
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from shoppingcart.utils import is_shopping_cart_enabled
 from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
@@ -106,6 +105,7 @@ from ..entrance_exams import user_must_complete_entrance_exam
 from ..module_render import get_module_for_descriptor, get_module, get_module_by_usage_id
 
 from web_fragments.fragment import Fragment
+from web_fragments.views import FragmentView
 
 log = logging.getLogger("edx.courseware")
 
@@ -448,7 +448,7 @@ def get_last_accessed_courseware(course, request, user):
     return None
 
 
-class StaticCourseTabView(FragmentContainerView):
+class StaticCourseTabView(FragmentView):
     """
     View that displays a static course tab with a given name.
     """
@@ -463,15 +463,15 @@ class StaticCourseTabView(FragmentContainerView):
         tab = CourseTabList.get_tab_by_slug(course.tabs, tab_slug)
         if tab is None:
             raise Http404
-        return self.render_fragment_to_response(request, course=course, tab=tab, **kwargs)
+        return super(StaticCourseTabView, self).get(request, course=course, tab=tab, **kwargs)
 
-    def render_fragment(self, request, course=None, tab=None, **kwargs):
+    def render_to_fragment(self, request, course=None, tab=None, **kwargs):
         """
         Renders the course tab's fragment.
         """
         return get_static_tab_fragment(request, course, tab)
 
-    def render_fragment_to_string(self, request, fragment, course=None, tab=None, **kwargs):
+    def render_to_standalone_html(self, request, fragment, course=None, tab=None, **kwargs):
         """
         Renders the fragment to a string.
         """
@@ -485,7 +485,7 @@ class StaticCourseTabView(FragmentContainerView):
         })
 
 
-class CourseTabView(FragmentContainerView):
+class CourseTabView(FragmentView):
     """
     View that displays a course tab page.
     """
@@ -498,15 +498,15 @@ class CourseTabView(FragmentContainerView):
         course_key = CourseKey.from_string(course_id)
         course = get_course_with_access(request.user, 'load', course_key)
         tab = [tab for tab in course.tabs if tab.type == tab_type][0]
-        return self.render_fragment_to_response(request, course=course, tab=tab, **kwargs)
+        return super(CourseTabView, self).get(request, course=course, tab=tab, **kwargs)
 
-    def render_fragment(self, request, course=None, tab=None, **kwargs):
+    def render_to_fragment(self, request, course=None, tab=None, **kwargs):
         """
         Renders the course tab's fragment.
         """
-        return tab.render_fragment(request, course, **kwargs)
+        return tab.render_to_fragment(request, course, **kwargs)
 
-    def render_fragment_to_string(self, request, fragment, course=None, tab=None, **kwargs):
+    def render_to_standalone_html(self, request, fragment, course=None, tab=None, **kwargs):
         """
         Renders the fragment to a string.
         """

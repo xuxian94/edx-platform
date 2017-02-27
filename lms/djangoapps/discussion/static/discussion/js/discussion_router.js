@@ -20,7 +20,7 @@
                     _.bindAll(this, 'allThreads', 'showThread');
                     this.rootUrl = options.rootUrl;
                     this.discussion = options.discussion;
-                    this.course_settings = options.courseSettings;
+                    this.courseSettings = options.courseSettings;
                     this.discussionBoardView = options.discussionBoardView;
                     this.newPostView = options.newPostView;
                 },
@@ -95,7 +95,7 @@
                         el: $('.forum-content'),
                         model: this.thread,
                         mode: 'tab',
-                        course_settings: this.course_settings
+                        courseSettings: this.courseSettings
                     });
                     this.main.render();
                     this.main.on('thread:responses:rendered', function() {
