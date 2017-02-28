@@ -1202,7 +1202,7 @@ class MoveComponentTest(ContainerBase):
         self.assertEqual(len(unit_page.displayed_children), 1)
 
         if operation == 'move':
-            self.container.click_take_me_link()
+            self.container.click_take_me_there_link()
         elif operation == 'undo_move':
             self.container.click_undo_move_link()
             self.container.verify_confirmation_message(
@@ -1216,7 +1216,7 @@ class MoveComponentTest(ContainerBase):
             component_display_names_after_operation
         )
 
-    def test_move(self):
+    def test_move_component_successfully(self):
         """
         Test if we can move a component successfully.
 
@@ -1241,7 +1241,7 @@ class MoveComponentTest(ContainerBase):
             component_display_names_after_operation=['HTML 21', 'HTML 22', 'HTML 11']
         )
 
-    def test_undo_move(self):
+    def test_undo_move_component_successfully(self):
         """
         Test if we can undo move a component successfully.
 
@@ -1268,17 +1268,17 @@ class MoveComponentTest(ContainerBase):
         """
         Test if we can move a component of content experiment successfully.
 
-        Given I am a staff user
-        When I go to content experiment page
-        Then I open the move modal
-        Then I navigate to unit in second section from within move modal
+        Given that I am a staff user
+        And I go to content experiment page
+        And I open the move dialogue modal
+        When I navigate to the unit in second section
         Then I see move button is enabled
-        Then I click on the move button
-        Then I see move operation successful message
-        When I go to unit page in second section
+        And when I click on the move button
+        Then I see move operation success message
+        And when I click on take me there link
         Then I see moved component there
-        When I undo move a component
-        Then I verified that undo move operation is successful
+        And when I undo move a component
+        Then I see it is undo move operation success message
         """
         # Add content experiment support to course.
         self.course_fixture.add_advanced_settings({
@@ -1354,8 +1354,8 @@ class MoveComponentTest(ContainerBase):
         )
         unit_page.a11y_audit.config.set_rules({
             'ignore': [
-                'color-contrast',
-                'link-href',
+                'color-contrast',  # TODO: AC-716
+                'link-href',  # TODO: AC-716
             ]
         })
 
