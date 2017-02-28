@@ -597,7 +597,7 @@ class DiscussionBoardFragmentView(EdxFragmentView):
     """
     def render_to_fragment(self, request, course_id=None, discussion_id=None, thread_id=None, **kwargs):
         """
-        Render the discussion board fragment.
+        Render the discussion board to a fragment.
 
         Args:
             request: The Django request.

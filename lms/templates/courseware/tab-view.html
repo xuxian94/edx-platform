@@ -22,7 +22,7 @@ from openedx.core.djangolib.markup import HTML
 ${HTML(fragment.head_html())}
 </%block>
 
-<%block name="foot_extra">
+<%block name="footer_extra">
 <%include file="/mathjax_include.html" args="disable_fast_preview=True"/>
 ${HTML(fragment.foot_html())}
 </%block>

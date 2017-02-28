@@ -467,13 +467,13 @@ class StaticCourseTabView(FragmentView):
 
     def render_to_fragment(self, request, course=None, tab=None, **kwargs):
         """
-        Renders the course tab's fragment.
+        Renders the static tab to a fragment.
         """
         return get_static_tab_fragment(request, course, tab)
 
     def render_to_standalone_html(self, request, fragment, course=None, tab=None, **kwargs):
         """
-        Renders the fragment to a string.
+        Renders this static tab's fragment to HTML for a standalone page.
         """
         return render_to_response('courseware/static_tab.html', {
             'course': course,
@@ -497,18 +497,18 @@ class CourseTabView(FragmentView):
         """
         course_key = CourseKey.from_string(course_id)
         course = get_course_with_access(request.user, 'load', course_key)
-        tab = [tab for tab in course.tabs if tab.type == tab_type][0]
+        tab = CourseTabList.get_tab_by_type(course.tabs, tab_type)
         return super(CourseTabView, self).get(request, course=course, tab=tab, **kwargs)
 
     def render_to_fragment(self, request, course=None, tab=None, **kwargs):
         """
-        Renders the course tab's fragment.
+        Renders the course tab to a fragment.
         """
         return tab.render_to_fragment(request, course, **kwargs)
 
     def render_to_standalone_html(self, request, fragment, course=None, tab=None, **kwargs):
         """
-        Renders the fragment to a string.
+        Renders this course tab's fragment to HTML for a standalone page.
         """
         return render_to_string(
             'courseware/tab-view.html',

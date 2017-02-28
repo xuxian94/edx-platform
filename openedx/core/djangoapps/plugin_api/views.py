@@ -68,7 +68,7 @@ class EdxFragmentView(FragmentView):
 
     def add_fragment_resource_urls(self, fragment):
         """
-        Adds URLs for JS and CSS resources need by this fragment.
+        Adds URLs for JS and CSS resources needed by this fragment.
         """
         # Head dependencies
         for vendor_js_file in self.vendor_js_dependencies():
@@ -83,7 +83,7 @@ class EdxFragmentView(FragmentView):
 
     def render_to_standalone_html(self, request, fragment, **kwargs):
         """
-        Renders a standalone version of this fragment.
+        Renders this fragment to HTML for a standalone page.
         """
         context = {
             'uses-pattern-library': self.USES_PATTERN_LIBRARY,
