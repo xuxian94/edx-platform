@@ -1221,14 +1221,14 @@ class MoveComponentTest(ContainerBase):
         Test if we can move a component successfully.
 
         Given I am a staff user
-        When I go to unit page in first section
-        Then I open the move modal
-        Then I navigate to unit in second section from within move modal
-        Then I see move button is enabled
-        Then I click on the move button
-        Then I see move operation successful message
-        When I go to unit page in second section
-        Then I see moved component there
+        And I go to unit page in first section
+        And I open the move modal
+        And I navigate to unit in second section
+        And I see move button is enabled
+        When I click on the move button
+        Then I see move operation success message
+        And When I click on take me there link
+        Then I see moved component there.
         """
         unit_page = self.go_to_unit_page(unit_name='Test Unit 1')
         components = unit_page.displayed_children
@@ -1246,12 +1246,12 @@ class MoveComponentTest(ContainerBase):
         Test if we can undo move a component successfully.
 
         Given I am a staff user
-        When I go to unit page in first section
-        Then I open the move modal
-        Then I click on the move button
+        And I go to unit page in first section
+        And I open the move modal
+        When I click on the move button
         Then I see move operation successful message
-        When I clicked on undo move link
-        Then I verified that undo move operation is successful
+        And When I clicked on undo move link
+        Then I see that undo move operation is successful
         """
         unit_page = self.go_to_unit_page(unit_name='Test Unit 1')
         components = unit_page.displayed_children
@@ -1278,7 +1278,7 @@ class MoveComponentTest(ContainerBase):
         And when I click on take me there link
         Then I see moved component there
         And when I undo move a component
-        Then I see it is undo move operation success message
+        Then I see that undo move operation success message
         """
         # Add content experiment support to course.
         self.course_fixture.add_advanced_settings({
@@ -1286,6 +1286,7 @@ class MoveComponentTest(ContainerBase):
         })
 
         # Create group configurations
+        # pylint: disable=protected-access
         self.course_fixture._update_xblock(self.course_fixture._course_location, {
             'metadata': {
                 u'user_partitions': [
