@@ -1677,8 +1677,14 @@ def create_account_with_params(request, params):
     # when the account is created via the browser and redirect URLs.
     should_link_with_social_auth = third_party_auth.is_enabled() and 'provider' in params
 
-    if should_link_with_social_auth or (third_party_auth.is_enabled() and pipeline.running(request)):
-        params["password"] = pipeline.make_random_password()
+    # if should_link_with_social_auth or (third_party_auth.is_enabled() and pipeline.running(request)):
+    #     params["password"] = pipeline.make_random_password()
+
+    if params.get('third_party'):
+        if pipeline.running(request):
+            params["password"] = pipeline.make_random_password()
+        else:
+            raise ValidationError({'session_expired': ["Your session with third party has been expired"]})
 
     # if doing signup for an external authorization, then get email, password, name from the eamap
     # don't use the ones from the form, since the user could have hacked those
