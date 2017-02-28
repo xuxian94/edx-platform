@@ -18,19 +18,23 @@ from email.utils import formatdate
 import pytz
 import requests
 import uuid
+from lazy import lazy
+from opaque_keys.edx.keys import UsageKey
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.dispatch import receiver
-from django.db import models
+from django.db import models, transaction
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext as _, ugettext_lazy
 
 from openedx.core.storage import get_storage
 from simple_history.models import HistoricalRecords
+from config_models.models import ConfigurationModel
 from course_modes.models import CourseMode
 from model_utils.models import StatusModel, TimeStampedModel
 from model_utils import Choices
@@ -38,8 +42,11 @@ from lms.djangoapps.verify_student.ssencrypt import (
     random_aes_key, encrypt_and_encode,
     generate_signed_message, rsa_encrypt
 )
+from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.exceptions import ItemNotFoundError
 from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from openedx.core.djangolib.model_mixins import DeprecatedModel
 
 log = logging.getLogger(__name__)
 
@@ -1095,3 +1102,82 @@ class VerificationDeadline(TimeStampedModel):
 def invalidate_deadline_caches(sender, **kwargs):  # pylint: disable=unused-argument
     """Invalidate the cached verification deadline information. """
     cache.delete(VerificationDeadline.ALL_DEADLINES_CACHE_KEY)
+
+
+class VerificationCheckpoint(DeprecatedModel):  # pylint: disable=model-missing-unicode
+    """
+    DEPRECATED - do not use. To be removed in next openedx release.
+    """
+    def __init__(self, *args, **kwargs):
+        super(VerificationCheckpoint, self).__init__(*args, **kwargs)
+
+    course_id = CourseKeyField(max_length=255, db_index=True)
+    checkpoint_location = models.CharField(max_length=255)
+    photo_verification = models.ManyToManyField(SoftwareSecurePhotoVerification)
+
+    class Meta(object):
+        app_label = "verify_student"
+        unique_together = ('course_id', 'checkpoint_location')
+
+
+class VerificationStatus(DeprecatedModel):  # pylint: disable=model-missing-unicode
+    """
+    DEPRECATED - do not use. To be removed in next openedx release.
+    """
+    def __init__(self, *args, **kwargs):
+        super(VerificationStatus, self).__init__(*args, **kwargs)
+
+    SUBMITTED_STATUS = "submitted"
+    APPROVED_STATUS = "approved"
+    DENIED_STATUS = "denied"
+    ERROR_STATUS = "error"
+
+    VERIFICATION_STATUS_CHOICES = (
+        (SUBMITTED_STATUS, SUBMITTED_STATUS),
+        (APPROVED_STATUS, APPROVED_STATUS),
+        (DENIED_STATUS, DENIED_STATUS),
+        (ERROR_STATUS, ERROR_STATUS)
+    )
+
+    checkpoint = models.ForeignKey(VerificationCheckpoint, related_name="checkpoint_status")
+    user = models.ForeignKey(User)
+    status = models.CharField(choices=VERIFICATION_STATUS_CHOICES, db_index=True, max_length=32)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    response = models.TextField(null=True, blank=True)
+    error = models.TextField(null=True, blank=True)
+
+    class Meta(object):
+        app_label = "verify_student"
+        get_latest_by = "timestamp"
+        verbose_name = "Verification Status"
+        verbose_name_plural = "Verification Statuses"
+
+class InCourseReverificationConfiguration(ConfigurationModel):
+    """
+    DEPRECATED - do not use. To be removed in next openedx release.
+    """
+    pass
+
+
+class IcrvStatusEmailsConfiguration(ConfigurationModel):
+    """
+    DEPRECATED - do not use. To be removed in next openedx release.
+    """
+    pass
+
+
+class SkippedReverification(DeprecatedModel):  # pylint: disable=model-missing-unicode
+    """
+    DEPRECATED - do not use. To be removed in next openedx release.
+    """
+    def __init__(self, *args, **kwargs):
+        super(SkippedReverification, self).__init__(*args, **kwargs)
+
+    user = models.ForeignKey(User)
+    course_id = CourseKeyField(max_length=255, db_index=True)
+    checkpoint = models.ForeignKey(VerificationCheckpoint, related_name="skipped_checkpoint")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta(object):
+        app_label = "verify_student"
+        unique_together = (('user', 'course_id'),)
