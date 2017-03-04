@@ -4,6 +4,11 @@ Utilities related to timezones
 from datetime import datetime
 from pytz import common_timezones, timezone, utc
 
+def get_user_time_zone(user):
+    time_zone = user.preferences.model.get_value(user,"time_zone")
+    if time_zone is not None:
+        return timezone(time_zone)
+    return utc
 
 def _format_time_zone_string(time_zone, date_time, format_string):
     """

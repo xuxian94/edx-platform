@@ -222,6 +222,7 @@ def index(request, extra_context=None, user=AnonymousUser()):
 
     context["programs_list"] = programs_list
 
+    # return HttpResponse(context)
     return render_to_response('index.html', context)
 
 
